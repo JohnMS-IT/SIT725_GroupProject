@@ -1,0 +1,79 @@
+<div class="container my-4">
+    <!-- Hero Section -->
+    <div class="text-center mb-5">
+        <h2>New Drop: Premium Collection</h2>
+        <a href="/shop" class="red-link">
+            <img src="/New_drop.webp" class="img-fluid mb-4" alt="New Drop Banner" style="max-height: 400px;">
+        </a>
+    </div>
+
+    <!-- Featured Categories -->
+    <h3>Shop by Category</h3>
+    <div class="row text-center mb-5">
+        <% if (categories && categories.length > 0) { %>
+            <% categories.forEach(category => { %>
+                <div class="col-lg-3 col-md-6 col-6 mb-3">
+                    <div class="category-card">
+                        <a href="/shop?category=<%= encodeURIComponent(category) %>" class="text-decoration-none text-dark">
+                            <% 
+                            // Map categories to images
+                            let categoryImage = 'running.webp';
+                            switch(category.toLowerCase()) {
+                                case 'running':
+                                    categoryImage = 'running.webp';
+                                    break;
+                                case 'basketball':
+                                    categoryImage = 'basketball.jpg';
+                                    break;
+                                case 'casual':
+                                    categoryImage = 'vans.webp';
+                                    break;
+                                default:
+                                    categoryImage = 'Sneakers.jpg';
+                            }
+                            %>
+                            <img src="/<%= categoryImage %>" class="img-fluid product-hover mb-2" alt="<%= category %>" style="height: 150px; object-fit: cover; width: 100%;">
+                            <h5><%= category %></h5>
+                        </a>
+                    </div>
+                </div>
+            <% }); %>
+        <% } %>
+    </div>
+
+    <!-- Featured Products -->
+    <h3>Featured Products</h3>
+    <div class="row">
+        <% if (featuredProducts && featuredProducts.length > 0) { %>
+            <% featuredProducts.forEach(product => { %>
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <img src="/<%= product.image %>" class="card-img-top" alt="<%= product.name %>" style="height: 250px; object-fit: cover;">
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title"><%= product.name %></h5>
+                            <p class="card-text text-muted"><%= product.category %></p>
+                            <% if (product.description) { %>
+                                <p class="card-text small"><%= product.description.substring(0, 100) %>...</p>
+                            <% } %>
+                            <div class="mt-auto">
+                                <p class="card-text"><strong>$<%= product.price %></strong></p>
+                                <a href="/product/<%= product.id %>" class="btn btn-primary">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <div class="col-12 text-center">
+                <p>No featured products available at the moment.</p>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- Shop CTA -->
+    <div class="text-center mt-5">
+        <h4>Discover More Amazing Shoes</h4>
+        <a href="/shop" class="btn btn-primary btn-lg">Shop All Products</a>
+    </div>
+</div>
+

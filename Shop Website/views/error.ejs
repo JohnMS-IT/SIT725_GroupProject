@@ -1,0 +1,23 @@
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="py-5">
+                <h1 class="display-1 text-muted">⚠️</h1>
+                <h2 class="mb-4"><%= title || 'Error' %></h2>
+                <p class="lead mb-4"><%= message || 'Something went wrong.' %></p>
+                
+                <% if (error) { %>
+                    <div class="alert alert-danger" role="alert">
+                        <strong>Error Details:</strong> <%= error %>
+                    </div>
+                <% } %>
+
+                <div class="mt-4">
+                    <a href="/" class="btn btn-primary me-3">Go Home</a>
+                    <a href="/shop" class="btn btn-outline-primary">Browse Products</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
