@@ -12,7 +12,7 @@
         <!-- Product Image -->
         <div class="col-md-6">
             <div class="card">
-                <img src="/<%= product.image %>" class="card-img-top" alt="<%= product.name %>" 
+                <img src="/assets/images/<%= product.image %>" class="card-img-top" alt="<%= product.name %>" 
                      style="height: 500px; object-fit: cover;">
             </div>
         </div>
@@ -107,7 +107,7 @@
                 <% relatedProducts.forEach(relatedProduct => { %>
                     <div class="col-lg-3 col-md-6 mb-4">
                         <div class="card h-100">
-                            <img src="/<%= relatedProduct.image %>" class="card-img-top" alt="<%= relatedProduct.name %>" style="height: 200px; object-fit: cover;">
+                            <img src="/assets/images/<%= relatedProduct.image %>" class="card-img-top" alt="<%= relatedProduct.name %>" style="height: 200px; object-fit: cover;">
                             <div class="card-body d-flex flex-column">
                                 <h6 class="card-title"><%= relatedProduct.name %></h6>
                                 <p class="card-text text-muted small"><%= relatedProduct.category %></p>

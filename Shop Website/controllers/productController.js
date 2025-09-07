@@ -6,12 +6,12 @@ class ProductController {
     try {
       const category = req.query.category;
       let products;
-      let categories = await Product.getCategories();
+      let categories = await Product.distinct('category');
 
       if (category) {
-        products = await Product.getByCategory(category);
+        products = await Product.findByCategory(category);
       } else {
-        products = await Product.getAll();
+        products = await Product.find().sort({ createdAt: -1 });
       }
 
       res.render('shop', {
@@ -35,7 +35,7 @@ class ProductController {
   static async show(req, res) {
     try {
       const productId = req.params.id;
-      const product = await Product.getById(productId);
+      const product = await Product.findById(productId);
 
       if (!product) {
         return res.status(404).render('error', {
@@ -46,8 +46,8 @@ class ProductController {
       }
 
       // Get related products from same category
-      const relatedProducts = await Product.getByCategory(product.category);
-      const filteredRelated = relatedProducts.filter(p => p.id !== product.id).slice(0, 4);
+      const relatedProducts = await Product.findByCategory(product.category);
+      const filteredRelated = relatedProducts.filter(p => p._id.toString() !== product._id.toString()).slice(0, 4);
 
       res.render('product-detail', {
         title: `${product.name} - ShoeMart`,
@@ -69,8 +69,14 @@ class ProductController {
   static async search(req, res) {
     try {
       const query = req.query.q || '';
-      const products = await Product.search(query);
-      const categories = await Product.getCategories();
+      let products = [];
+      let categories = await Product.distinct('category');
+
+      if (query.trim()) {
+        products = await Product.searchProducts(query);
+      } else {
+        products = await Product.find().sort({ createdAt: -1 });
+      }
 
       // If it's an AJAX request, return JSON
       if (req.headers.accept && req.headers.accept.includes('application/json')) {
@@ -108,7 +114,7 @@ class ProductController {
   static async getByCategory(req, res) {
     try {
       const category = req.params.category;
-      const products = await Product.getByCategory(category);
+      const products = await Product.findByCategory(category);
 
       res.json({
         category,
@@ -123,4 +129,3 @@ class ProductController {
 }
 
 module.exports = ProductController;
-

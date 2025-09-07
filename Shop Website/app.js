@@ -18,16 +18,16 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// Static files middleware - serve from public_html for images and CSS
-app.use(express.static(path.join(__dirname, 'public_html')));
+// Static files middleware - serve from assets folder
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
 
 // Initialize database
 initDatabase()
   .then(() => {
-    console.log('Database initialized successfully');
+    console.log('✅ Database initialized successfully');
   })
   .catch((error) => {
-    console.error('Database initialization failed:', error);
+    console.error('❌ Database initialization failed:', error);
     process.exit(1);
   });
 

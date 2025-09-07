@@ -1,123 +1,95 @@
-const { db } = require('../config/database');
+const mongoose = require('mongoose');
 
-class Message {
-  constructor(id, name, email, phone, topic, message, created_at) {
-    this.id = id;
-    this.name = name;
-    this.email = email;
-    this.phone = phone;
-    this.topic = topic;
-    this.message = message;
-    this.created_at = created_at;
+// Message Schema
+const messageSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Name is required'],
+    trim: true,
+    maxlength: [100, 'Name cannot exceed 100 characters']
+  },
+  email: {
+    type: String,
+    required: [true, 'Email is required'],
+    trim: true,
+    lowercase: true,
+    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
+  },
+  phone: {
+    type: String,
+    trim: true,
+    maxlength: [20, 'Phone number cannot exceed 20 characters']
+  },
+  topic: {
+    type: String,
+    required: [true, 'Topic is required'],
+    trim: true,
+    maxlength: [100, 'Topic cannot exceed 100 characters']
+  },
+  message: {
+    type: String,
+    required: [true, 'Message is required'],
+    trim: true,
+    maxlength: [1000, 'Message cannot exceed 1000 characters']
+  },
+  status: {
+    type: String,
+    enum: ['new', 'read', 'replied', 'archived'],
+    default: 'new'
   }
+}, {
+  timestamps: true // This adds createdAt and updatedAt fields
+});
 
-  // Get all messages
-  static getAll() {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM Messages ORDER BY created_at DESC';
-      db.all(sql, [], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const messages = rows.map(row => new Message(
-            row.id, row.name, row.email, row.phone, row.topic, row.message, row.created_at
-          ));
-          resolve(messages);
-        }
-      });
-    });
-  }
+// Index for better query performance
+messageSchema.index({ status: 1 });
+messageSchema.index({ createdAt: -1 });
+messageSchema.index({ email: 1 });
 
-  // Get message by ID
-  static getById(id) {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM Messages WHERE id = ?';
-      db.get(sql, [id], (err, row) => {
-        if (err) {
-          reject(err);
-        } else if (row) {
-          const message = new Message(
-            row.id, row.name, row.email, row.phone, row.topic, row.message, row.created_at
-          );
-          resolve(message);
-        } else {
-          resolve(null);
-        }
-      });
-    });
-  }
+// Virtual for formatted date
+messageSchema.virtual('formattedDate').get(function() {
+  return this.createdAt.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+});
 
-  // Create new message
-  static create(name, email, phone, topic, message) {
-    return new Promise((resolve, reject) => {
-      // Validate required fields
-      if (!name || !email || !topic || !message) {
-        reject(new Error('Name, email, topic, and message are required'));
-        return;
-      }
+// Ensure virtual fields are serialized
+messageSchema.set('toJSON', { virtuals: true });
 
-      const sql = `
-        INSERT INTO Messages (name, email, phone, topic, message) 
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      db.run(sql, [name, email, phone, topic, message], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.lastID);
-        }
-      });
-    });
-  }
+// Static method to find recent messages
+messageSchema.statics.findRecent = function(limit = 10) {
+  return this.find()
+    .sort({ createdAt: -1 })
+    .limit(limit);
+};
 
-  // Delete message
-  static delete(id) {
-    return new Promise((resolve, reject) => {
-      const sql = 'DELETE FROM Messages WHERE id = ?';
-      db.run(sql, [id], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes > 0);
-        }
-      });
-    });
-  }
+// Static method to find messages by status
+messageSchema.statics.findByStatus = function(status) {
+  return this.find({ status }).sort({ createdAt: -1 });
+};
 
-  // Get messages by topic
-  static getByTopic(topic) {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM Messages WHERE topic = ? ORDER BY created_at DESC';
-      db.all(sql, [topic], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const messages = rows.map(row => new Message(
-            row.id, row.name, row.email, row.phone, row.topic, row.message, row.created_at
-          ));
-          resolve(messages);
-        }
-      });
-    });
-  }
+// Instance method to mark as read
+messageSchema.methods.markAsRead = function() {
+  this.status = 'read';
+  return this.save();
+};
 
-  // Get recent messages (last N messages)
-  static getRecent(limit = 10) {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM Messages ORDER BY created_at DESC LIMIT ?';
-      db.all(sql, [limit], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const messages = rows.map(row => new Message(
-            row.id, row.name, row.email, row.phone, row.topic, row.message, row.created_at
-          ));
-          resolve(messages);
-        }
-      });
-    });
-  }
-}
+// Instance method to mark as replied
+messageSchema.methods.markAsReplied = function() {
+  this.status = 'replied';
+  return this.save();
+};
+
+// Instance method to archive
+messageSchema.methods.archive = function() {
+  this.status = 'archived';
+  return this.save();
+};
+
+const Message = mongoose.model('Message', messageSchema);
 
 module.exports = Message;
-

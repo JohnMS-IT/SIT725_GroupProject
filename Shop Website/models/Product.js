@@ -1,149 +1,73 @@
-const { db } = require('../config/database');
+const mongoose = require('mongoose');
 
-class Product {
-  constructor(id, name, price, category, image, description) {
-    this.id = id;
-    this.name = name;
-    this.price = price;
-    this.category = category;
-    this.image = image;
-    this.description = description;
+// Product Schema
+const productSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: [true, 'Product name is required'],
+    trim: true,
+    maxlength: [100, 'Product name cannot exceed 100 characters']
+  },
+  price: {
+    type: Number,
+    required: [true, 'Product price is required'],
+    min: [0, 'Price cannot be negative']
+  },
+  category: {
+    type: String,
+    required: [true, 'Product category is required'],
+    enum: {
+      values: ['Running', 'Basketball', 'Casual', 'Skateboarding', 'Kids', 'Women'],
+      message: 'Category must be one of: Running, Basketball, Casual, Skateboarding, Kids, Women'
+    }
+  },
+  image: {
+    type: String,
+    required: [true, 'Product image is required']
+  },
+  description: {
+    type: String,
+    required: [true, 'Product description is required'],
+    maxlength: [500, 'Description cannot exceed 500 characters']
   }
+}, {
+  timestamps: true // This adds createdAt and updatedAt fields
+});
 
-  // Get all products
-  static getAll() {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM Products ORDER BY name';
-      db.all(sql, [], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const products = rows.map(row => new Product(
-            row.id, row.name, row.price, row.category, row.image, row.description
-          ));
-          resolve(products);
-        }
-      });
-    });
-  }
+// Index for better search performance
+productSchema.index({ name: 'text', description: 'text' });
+productSchema.index({ category: 1 });
+productSchema.index({ price: 1 });
 
-  // Get product by ID
-  static getById(id) {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM Products WHERE id = ?';
-      db.get(sql, [id], (err, row) => {
-        if (err) {
-          reject(err);
-        } else if (row) {
-          const product = new Product(
-            row.id, row.name, row.price, row.category, row.image, row.description
-          );
-          resolve(product);
-        } else {
-          resolve(null);
-        }
-      });
-    });
-  }
+// Virtual for formatted price
+productSchema.virtual('formattedPrice').get(function() {
+  return `$${this.price.toFixed(2)}`;
+});
 
-  // Get products by category
-  static getByCategory(category) {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM Products WHERE category = ? ORDER BY name';
-      db.all(sql, [category], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const products = rows.map(row => new Product(
-            row.id, row.name, row.price, row.category, row.image, row.description
-          ));
-          resolve(products);
-        }
-      });
-    });
-  }
+// Ensure virtual fields are serialized
+productSchema.set('toJSON', { virtuals: true });
 
-  // Search products by name
-  static search(query) {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM Products WHERE name LIKE ? ORDER BY name';
-      db.all(sql, [`%${query}%`], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const products = rows.map(row => new Product(
-            row.id, row.name, row.price, row.category, row.image, row.description
-          ));
-          resolve(products);
-        }
-      });
-    });
-  }
+// Static method to find products by category
+productSchema.statics.findByCategory = function(category) {
+  return this.find({ category: new RegExp(category, 'i') });
+};
 
-  // Get unique categories
-  static getCategories() {
-    return new Promise((resolve, reject) => {
-      const sql = 'SELECT DISTINCT category FROM Products ORDER BY category';
-      db.all(sql, [], (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          const categories = rows.map(row => row.category);
-          resolve(categories);
-        }
-      });
-    });
-  }
+// Static method to search products
+productSchema.statics.searchProducts = function(query) {
+  return this.find({
+    $or: [
+      { name: new RegExp(query, 'i') },
+      { description: new RegExp(query, 'i') },
+      { category: new RegExp(query, 'i') }
+    ]
+  });
+};
 
-  // Create new product
-  static create(name, price, category, image, description) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        INSERT INTO Products (name, price, category, image, description) 
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      db.run(sql, [name, price, category, image, description], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.lastID);
-        }
-      });
-    });
-  }
+// Instance method to check if product is on sale
+productSchema.methods.isOnSale = function() {
+  return this.price < 100; // Example: products under $100 are on sale
+};
 
-  // Update product
-  static update(id, name, price, category, image, description) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        UPDATE Products 
-        SET name = ?, price = ?, category = ?, image = ?, description = ? 
-        WHERE id = ?
-      `;
-      db.run(sql, [name, price, category, image, description, id], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes > 0);
-        }
-      });
-    });
-  }
-
-  // Delete product
-  static delete(id) {
-    return new Promise((resolve, reject) => {
-      const sql = 'DELETE FROM Products WHERE id = ?';
-      db.run(sql, [id], function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(this.changes > 0);
-        }
-      });
-    });
-  }
-}
+const Product = mongoose.model('Product', productSchema);
 
 module.exports = Product;
-

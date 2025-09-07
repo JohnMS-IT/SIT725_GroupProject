@@ -36,8 +36,16 @@ class ContactController {
         return res.redirect('/contact?error=Please enter a valid email address');
       }
 
-      // Save message to database
-      await Message.create(name, email, phone, topic, message);
+      // Create new message using Mongoose
+      const newMessage = new Message({
+        name,
+        email,
+        phone: phone || undefined,
+        topic,
+        message
+      });
+
+      await newMessage.save();
 
       console.log('New message received:', { name, email, phone, topic, message });
 
@@ -45,6 +53,13 @@ class ContactController {
       res.redirect('/contact?success=true');
     } catch (error) {
       console.error('Error in ContactController.submit:', error);
+      
+      // Handle validation errors
+      if (error.name === 'ValidationError') {
+        const errorMessages = Object.values(error.errors).map(err => err.message);
+        return res.redirect(`/contact?error=${encodeURIComponent(errorMessages.join(', '))}`);
+      }
+      
       res.redirect('/contact?error=Unable to send message. Please try again.');
     }
   }
@@ -52,7 +67,7 @@ class ContactController {
   // Get all messages (admin endpoint)
   static async getMessages(req, res) {
     try {
-      const messages = await Message.getAll();
+      const messages = await Message.find().sort({ createdAt: -1 });
       
       res.json({
         messages,
@@ -68,7 +83,7 @@ class ContactController {
   static async getRecentMessages(req, res) {
     try {
       const limit = parseInt(req.query.limit) || 10;
-      const messages = await Message.getRecent(limit);
+      const messages = await Message.findRecent(limit);
       
       res.json({
         messages,
@@ -85,9 +100,9 @@ class ContactController {
   static async deleteMessage(req, res) {
     try {
       const messageId = req.params.id;
-      const deleted = await Message.delete(messageId);
+      const deletedMessage = await Message.findByIdAndDelete(messageId);
 
-      if (deleted) {
+      if (deletedMessage) {
         res.json({ success: true, message: 'Message deleted successfully' });
       } else {
         res.status(404).json({ error: 'Message not found' });
@@ -100,4 +115,3 @@ class ContactController {
 }
 
 module.exports = ContactController;
-
